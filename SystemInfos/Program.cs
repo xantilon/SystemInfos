@@ -8,18 +8,12 @@ using System.Text;
 
 namespace SystemInfos
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
-            var si = new SystemDetails();
-            //var props = typeof(SystemDetails).GetProperties().Select(p => p.Name + "\t" + p.GetValue(si)).ToList();
-            //props.ForEach(p => Console.WriteLine(p));
+            SystemDetails si = new SystemDetails();
             si.Dump();
-
-
-
-
 
             Console.ReadLine();
         }
@@ -33,20 +27,19 @@ namespace SystemInfos
         public string ComputerName { get; private set; }// Machine name
         public string OS_Architecture { get; private set; } // Processor type
         public string CPU_Kerne { get; }
-        public string  LatestDotNet { get;  }
+        public string LatestDotNet { get; }
         public string TotalRam { get; }
-        
+
 
         public SystemDetails()
         {
-
             UserName = Environment.UserName;
             OS_Version = GetOSInfo();
             ComputerName = Environment.MachineName;
             OS_Architecture = Environment.Is64BitOperatingSystem ? "64-Bit" : "32-Bit";
             CPU_Kerne = Environment.ProcessorCount.ToString();
             TotalRam = GetRAM();
-            LatestDotNet = Get45PlusFromRegistry();            
+            LatestDotNet = Get45PlusFromRegistry();
         }
 
         public string GetOSInfo()
@@ -54,9 +47,9 @@ namespace SystemInfos
             string caption;
             Version version;
 
-            using (var mos = new ManagementObjectSearcher("SELECT Caption, Version FROM Win32_OperatingSystem"))
+            using (ManagementObjectSearcher mos = new ManagementObjectSearcher("SELECT Caption, Version FROM Win32_OperatingSystem"))
             {
-                var attribs = mos.Get().OfType<ManagementObject>();
+                IEnumerable<ManagementObject> attribs = mos.Get().OfType<ManagementObject>();
                 caption = attribs.FirstOrDefault().GetPropertyValue("Caption").ToString() ?? "Unknown";
                 version = new Version((attribs.FirstOrDefault().GetPropertyValue("Version") ?? "0.0.0.0").ToString());
             }
@@ -78,11 +71,11 @@ namespace SystemInfos
                 );
 
             ObjectQuery winQuery = new ObjectQuery($"SELECT {pn} FROM Win32_OperatingSystem");
-            var data = new List<Tuple<string, dynamic>>();
+            List<Tuple<string, dynamic>> data = new List<Tuple<string, dynamic>>();
 
             using (ManagementObjectSearcher searcher = new ManagementObjectSearcher(winQuery))
             {
-                foreach (var moc in searcher.Get())
+                foreach (ManagementBaseObject moc in searcher.Get())
                 {
                     PropertyDataCollection props = moc.Properties;
                     foreach (PropertyData prop in props)
@@ -91,8 +84,8 @@ namespace SystemInfos
                     }
                 }
             }
-            var sb = new StringBuilder();
-            foreach (var d in data)
+            StringBuilder sb = new StringBuilder();
+            foreach (Tuple<string, dynamic> d in data)
             {
                 //Console.WriteLine($"{d.Item1}\t{d.Item2}");
                 sb.AppendLine($"\t\t{d.Item1}\t{FormatSizeHumanReadable(d.Item2)}");
@@ -108,7 +101,7 @@ namespace SystemInfos
             decimal len = 0m;
             try
             {
-                len = (UInt64)kilobytes;
+                len = (ulong)kilobytes;
             }
             catch (Exception)
             {
@@ -123,12 +116,12 @@ namespace SystemInfos
 
             // Adjust the format string to your preferences. For example "{0:0.#}{1}" would
             // show a single decimal place, and no space.
-            return String.Format("{0:0.##} {1}", len, sizes[order]);
+            return string.Format("{0:0.##} {1}", len, sizes[order]);
         }
 
         public void Dump()
         {
-            var props = typeof(SystemDetails).GetProperties().Select(p => p.Name + "\t" + p.GetValue(this)).ToList();
+            List<string> props = typeof(SystemDetails).GetProperties().Select(p => p.Name + "\t" + p.GetValue(this)).ToList();
             props.ForEach(p => Console.WriteLine(p));
         }
 
@@ -136,7 +129,7 @@ namespace SystemInfos
         {
             const string subkey = @"SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\";
 
-            using (var ndpKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32).OpenSubKey(subkey))
+            using (RegistryKey ndpKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32).OpenSubKey(subkey))
             {
                 if (ndpKey != null && ndpKey.GetValue("Release") != null)
                 {
@@ -152,25 +145,54 @@ namespace SystemInfos
             string CheckFor45PlusVersion(int releaseKey)
             {
                 if (releaseKey >= 528040)
+                {
                     return "4.8 or later";
+                }
+
                 if (releaseKey >= 461808)
+                {
                     return "4.7.2";
+                }
+
                 if (releaseKey >= 461308)
+                {
                     return "4.7.1";
+                }
+
                 if (releaseKey >= 460798)
+                {
                     return "4.7";
+                }
+
                 if (releaseKey >= 394802)
+                {
                     return "4.6.2";
+                }
+
                 if (releaseKey >= 394254)
+                {
                     return "4.6.1";
+                }
+
                 if (releaseKey >= 393295)
+                {
                     return "4.6";
+                }
+
                 if (releaseKey >= 379893)
+                {
                     return "4.5.2";
+                }
+
                 if (releaseKey >= 378675)
+                {
                     return "4.5.1";
+                }
+
                 if (releaseKey >= 378389)
+                {
                     return "4.5";
+                }
                 // This code should never execute. A non-null release key should mean
                 // that 4.5 or later is installed.
                 return "No 4.5 or later version detected";
